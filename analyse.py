@@ -116,6 +116,8 @@ class Methods:
             # Format results
             shot_flag = False
             kill_flag = False
+            headshot_flag = False
+            
             frame_detections = []
             for r in detections:
                 for box in r.boxes:
@@ -125,7 +127,9 @@ class Methods:
                         shot_flag = True
                     elif model.names[int(box.cls[0])] == 'kill':
                         kill_flag = True
-                        
+                    elif model.names[int(box.cls[0])] == 'headshot':
+                        headshot_flag = True
+                    
                     detection = {
                         "class_id": int(box.cls[0]),
                         "class_name": model.names[int(box.cls[0])],
@@ -145,6 +149,7 @@ class Methods:
                 "time": timestamp,
                 "detections": frame_detections,
                 "shot": shot_flag,
+                "headshot" : headshot_flag,
                 "kill": kill_flag
             }
                     
@@ -479,20 +484,20 @@ class Analysis:
         
         self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
         # Run the model on the desired video
-        #image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json)
+        image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json)
         
         self.logger.info(f" Video analysis done.")
-        image_dimensions = [2560, 1440]
+        #image_dimensions = [2560, 1440]
         self.logger.info(f" Image dimensions: {image_dimensions}")
         
         crosshair = [image_dimensions[0]/2, image_dimensions[1]/2]
-        print(f"Crosshair: {crosshair}")
+        #print(f"Crosshair: {crosshair}")
         self.logger.info(f" Crosshair coordonates: {crosshair}")
         self.logger.info(f" Cleaning the data...")
         
         # clean data (head duplicates)
-        #clean_dataset = self.utils.clean_data(self.results_json)
-        clean_dataset = r"C:\Users\bianc\Desktop\2026_06_05_11_17_45\bot-data-clean-results.json"
+        clean_dataset = self.utils.clean_data(self.results_json)
+        #clean_dataset = r"C:\Users\bianc\Desktop\2026_06_05_11_17_45\bot-data-clean-results.json"
         self.logger.info(f" Clean data saved at {clean_dataset}!")
         
         self.logger.info(f" Getting data per bot ...")

@@ -50,7 +50,7 @@ class AnalysisWindow(QMainWindow):
         self.browse.setDisabled(True)
         self.status_label.setText("Analyzing...")
         
-        yolo_path = r"C:\Users\bianc\Desktop\Facultate\Licenta\Fisiere\Runs\best-26.pt"
+        yolo_path = r"C:\Users\bianc\Desktop\Facultate\Licenta\LoxiAnalysisApp\files\best.pt"
     
         #video_p = r"C:\Users\bianc\Desktop\Facultate\Licenta\Fisiere\Video\1.4.1.mp4"
         video_path = self.file_path
