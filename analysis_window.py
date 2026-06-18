@@ -50,14 +50,15 @@ class AnalysisWindow(QMainWindow):
         self.browse.setDisabled(True)
         self.status_label.setText("Analyzing...")
         
-        yolo_path = r"C:\Users\bianc\Desktop\Facultate\Licenta\LoxiAnalysisApp\files\best.pt"
-    
+        #yolo_path = r"C:\Users\bianc\Desktop\Facultate\Licenta\LoxiAnalysisApp\files\best.pt"
+        yolo_path = r"C:\Users\Gamebox\Desktop\train3-headshots\weights\best.pt"
+        
         #video_p = r"C:\Users\bianc\Desktop\Facultate\Licenta\Fisiere\Video\1.4.1.mp4"
         video_path = self.file_path
         
-        #results_p = r"C:\Users\Gamebox\Desktop\Licenta-diverse"
-        results_location = r"C:\Users\bianc\Desktop"
-        
+        #results_location = r"C:\Users\bianc\Desktop"
+        results_location = r"C:\Users\Gamebox\Desktop\Licenta-diverse"
+
         analysis_object = Analysis(results_location, yolo_path, video_path)
         statistics = analysis_object.run()
         

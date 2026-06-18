@@ -13,13 +13,10 @@ class Bot:
 
 
 class Methods:
-    def __init__(self, results_path):
-        self.logger = self.setup_logger(results_path)
-        
-    def setup_logger(self, results_path):
-        log_name = "LoxiAnalysis.log"
-        logger_path = os.path.join(results_path, log_name)
 
+    def setup_logger(self, destination_path):
+        log_name = "LoxiAnalysis.log"
+        logger_path = os.path.join(destination_path, log_name)
         
         if os.path.exists(logger_path):
             os.remove(logger_path)
@@ -79,7 +76,7 @@ class Methods:
             json.dump(output, f, indent=4)
 
 
-    def run_analysis(self, yolo_path, video_path, results_path):
+    def run_analysis(self, yolo_path, video_path, results_path, logger):
         
         # Import the model
         model = YOLO(yolo_path)
@@ -93,7 +90,7 @@ class Methods:
         
         # get nr of fps
         fps = cap.get(cv2.CAP_PROP_FPS)
-        self.logger.info(f" FPS: {fps}")
+        logger.info(f" FPS: {fps}")
         
         frame_idx = 0
         timeline = []
@@ -117,14 +114,17 @@ class Methods:
             shot_flag = False
             kill_flag = False
             headshot_flag = False
-            
+
             frame_detections = []
             for r in detections:
                 for box in r.boxes:
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     
                     if model.names[int(box.cls[0])] == 'shot':
-                        shot_flag = True
+                        if float(box.conf[0]) > 0.5:
+                            shot_flag = True
+                        else:
+                            continue
                     elif model.names[int(box.cls[0])] == 'kill':
                         kill_flag = True
                     elif model.names[int(box.cls[0])] == 'headshot':
@@ -152,7 +152,7 @@ class Methods:
                 "headshot" : headshot_flag,
                 "kill": kill_flag
             }
-                    
+            
             # Append the frame data to the timeline
             timeline.append(frame_data)
             
@@ -168,7 +168,7 @@ class Methods:
         return dimensions
 
 
-    def get_nr_shots(self, bot_data, results_json, crosshair):
+    def get_nr_shots(self, bot_data, results_json):
         """
         Calculates the number of shots fired for every kill. On the first frame where the shot is identified, we count the shot, then wait for the first frame without the shot animation. 
         There is where one individual shot ends.
@@ -187,60 +187,55 @@ class Methods:
         for bot in bot_data:
             bot.nr_shots = 0
             bot.headshots = 0
+            bot.shots_frames=[]
             first_shot = True
-            print("\n------------------------------------------------------")
+            #print("\n------------------------------------------------------")
+            #print(f"Bot {bot.id}")
+            
             try:
-                for frame in range(bot.start_frame, bot.end_frame):
+                counter = 0
+                good_shot = False
+                
+                # starting from 2 frames after the bot appeared in fov, to eliminate the accidental counting of shots
+                for frame in range(bot.start_frame + 2, bot.end_frame):
                     if results[frame]["shot"] == True:
+                        # if we have the shot animation for more than 3 frames, it means we have two consecuitve shots
+                        if counter >= 2:
+                            shot_flag = False
+                            
+                        # if we have not marked this shot
                         if not shot_flag:
+                            counter = 0
+                            # if it is the first shot fired for this bot, save it's data
                             if first_shot:
                                 bot.first_shot = results[frame]["time"]
                                 bot.first_shot_frame = frame
                                 first_shot = False
                             
-                            print(f" - Bot {bot.id}, shot at {frame}.")
-                            # mark the first frame for one shot animation (the start of the shot animation process)
+                            # save the start of the shot animation process
                             bot.nr_shots += 1
+                            bot.shots_frames.append(frame)
                             
-                            previous_head_flag = False
-                            # in the previous frame, if the crosshair was at the head level, consider it headshot
-                            for detection in results[frame - 1]["detections"]:
-                                if detection["class_name"] == "head":
-                                    previous_x1 = detection["bbox"]["x1"]
-                                    previous_x2 = detection["bbox"]["x2"]
-                                    previous_y1 = detection["bbox"]["y1"]
-                                    previous_y2 = detection["bbox"]["y2"]
-                                    previous_head_flag = True
-                                    break
-                                
-                            for detection in results[frame]["detections"]:
-                                if detection["class_name"] == "head":
-                                    print(f"Head at: {detection["bbox"]["x1"]} - {detection["bbox"]["x2"]}, {detection["bbox"]["y1"]} - {detection["bbox"]["y2"]}")
-                                    x = [detection["bbox"]["x1"], detection["bbox"]["x2"]]
-                                    y = [detection["bbox"]["y1"], detection["bbox"]["y2"]]
-                                    
-                                    if x[0] - 1 < crosshair[0] < x[1] + 1 and y[0] - 1  < crosshair[1] < y[1] + 1:
-                                        bot.headshots += 1
-                                        print(f"           - Headshot")
-                                    else:
-                                        if previous_head_flag:
-                                            x = [(detection["bbox"]["x1"] + previous_x1)/2, (detection["bbox"]["x2"] + previous_x2)/2]
-                                            y = [(detection["bbox"]["y1"] + previous_y1)/2, (detection["bbox"]["y2"] + previous_y2)/2]
-                                        if x[0] + 2 < crosshair[0] < x[1] - 2 and y[0] + 2 < crosshair[1] < y[1] - 2:
-                                            bot.headshots += 1
-                                            print(f"           - Headshot at average: {x[0]} - {x[1]}, {y[0]} - {y[1]}")
-                                        elif previous_x1 + 3 < crosshair[0] < previous_x2 - 3 and previous_y1 + 3 < crosshair[1] < previous_y2 - 3:
-                                            bot.headshots += 1
-                                            print(f"           - Headshot at previous frame: {previous_x1} - {previous_x2}, {previous_y1} - {previous_y2}")
+                            
+                            #print(f"Shot at frame {frame}.")
+                            
+                            # if we have the headshot animation in one of the next 3 frames, mark as headshot
+                            for i in range(0,3):
+                                if results[frame + i]["headshot"] == True:
+                                    bot.headshots += 1
+                                    #print(f"Is headshot")
                                     break
                             
                             shot_flag = True
+                        else:
+                            counter += 1
                     else:
                         # if it is not the first frame of the shot animation, dont count it as a new shot
                         shot_flag = False
                         
+                        
             except Exception as e:
-                print(f"End of file? {e}")
+                print(e)
             
 
 
@@ -297,7 +292,7 @@ class Methods:
 
 
     def statistics_calculation(self, bot_data, results_json, crosshair):
-        statistic_results ={"reaction_time": 0, "time_to_kill": 0, "shot_efficiency": 0,  "headshot_percentage": 0, "flick_accuracy":0,  "time_on_target": 0}
+        statistic_results ={"shots": 0, "headshots": 0, "reaction_time": 0, "time_to_kill": 0, "shot_efficiency": 0,  "headshot_percentage": 0, "flick_accuracy":0,  "time_on_target": 0}
 
         counter = 0
 
@@ -308,6 +303,8 @@ class Methods:
                 bot.headshot_percentage = (bot.headshots / bot.nr_shots) * 100
                 bot.flick_accuracy = 0
                 
+                statistic_results["shots"] += bot.nr_shots
+                statistic_results["headshots"] += bot.headshots
                 statistic_results["reaction_time"] += (bot.first_shot - bot.t_spawn)
                 statistic_results["time_to_kill"] += (bot.t_kill - bot.first_shot)
                 statistic_results["shot_efficiency"] += bot.nr_shots
@@ -315,13 +312,15 @@ class Methods:
                 counter += 1
             except:
                 pass
-        
-        statistic_results["reaction_time"] /= counter
-        statistic_results["time_to_kill"] /= counter
-        statistic_results["shot_efficiency"] /= counter
-        statistic_results["headshot_percentage"] /= counter
-        statistic_results["flick_accuracy"] = self.flick_accuracy(bot_data, results_json, crosshair)
-        statistic_results["time_on_target"] = self.time_on_target(bot_data, results_json, crosshair)
+        try:
+            statistic_results["reaction_time"] /= counter
+            statistic_results["time_to_kill"] /= counter
+            statistic_results["shot_efficiency"] /= counter
+            statistic_results["headshot_percentage"] /= counter
+            statistic_results["flick_accuracy"] = self.flick_accuracy(bot_data, results_json, crosshair)
+            statistic_results["time_on_target"] = self.time_on_target(bot_data, results_json, crosshair)
+        except Exception as e:
+            print(e)
 
         return statistic_results
 
@@ -356,7 +355,7 @@ class Methods:
 
 
     def time_on_target(self, bot_data, results_json, crosshair):
-        #   How long is the crosshair on the head before firing 
+        #   How long is the crosshair on the head before firing the final shot
         
         timp = 0
 
@@ -365,38 +364,39 @@ class Methods:
 
         counter = 0
         for bot in bot_data:
+            #print("\n--------------------------------")
+            #print(f"Bot {bot.id}")
             counter += 1
-            bot.time_on_target = 0
+            bot.time_on_target = 1
             
             try:
-                for frame in range(bot.start_frame, bot.first_shot_frame):
-                    # in the frame, if the crosshair was at the head level
+                #print(f"Checking in range {bot.shots_frames[-1] -1} -> {bot.start_frame}")
+                for frame in range(bot.shots_frames[-1] - 1, bot.start_frame, -1):
+                    # check in the frame if the crosshair was at the head level
                     stop_frame = False
-                    
                     for detection in results[frame]["detections"]:
                         if detection["class_name"] == "head":
                             if detection["bbox"]["x1"] -2 <= crosshair[0] <= detection["bbox"]["x2"] + 2 and detection["bbox"]["y1"] - 2 <= crosshair[1] <= detection["bbox"]["y2"] + 2:
-                                bot.time_on_target = bot.first_shot - results[frame]["time"]
+                                bot.time_on_target = results[bot.shots_frames[-1]]["time"] - results[frame]["time"]
+                                #print("On head")
+                            else:
                                 stop_frame = True
-                                break
+                                #print(f"Stopped at {frame}")
+                            break
+                                
                     
                     # if we got the time on this bot, go to the next one
                     if stop_frame:
+                        #print(bot.time_on_target)
                         break
                 timp += bot.time_on_target
 
-            except:
-                pass
+            except Exception as e:
+                print(e)
         
         timp /= counter 
 
         return timp
-
-
-
-    def calculate_score(bot_data):
-        pass
-
 
 
     def clean_data(self, results_json):
@@ -409,7 +409,7 @@ class Methods:
 
         clean_results = []
         heads_list = []
-        
+
         for data in range(len(results)):
             heads_list = []
             clean_results.append(results[data].copy())
@@ -435,20 +435,19 @@ class Methods:
             
         root, tail = os.path.splitext(results_json)
         new_path = os.path.join(root + "-clean-results.json")
-        print(new_path)
         with open(new_path, "w") as f:
             json.dump(clean_results, f, indent=4)
         
         return new_path
         
         
-    def show_bot_data(self, bot_data):
+    def show_bot_data(self, bot_data, logger):
         for bot in bot_data:
             try:
-                self.logger.info(f" ID: {bot.id}, t_spawn={"{:.2f}".format(bot.t_spawn)}, start_frame={bot.start_frame}, t_kill={"{:.2f}".format(bot.t_kill)}, end_frame={bot.end_frame}, first_shot={"{:.2f}".format(bot.first_shot)}, first_shot_frame={bot.first_shot_frame} nr_shots={bot.nr_shots}, headshots={bot.headshots}, reaction_time= {"{:.2f}".format(bot.reaction_time)}, time_to_kill={"{:.2f}".format(bot.time_to_kill)}, headshot_percentage={"{:.2f}".format(bot.headshot_percentage)}, flick_accuracy={"{:.2f}".format(bot.flick_accuracy)}, time_on_target={"{:.2f}".format(bot.time_on_target)}")
+                logger.info(f" ID: {bot.id}, t_spawn={"{:.2f}".format(bot.t_spawn)}, start_frame={bot.start_frame}, t_kill={"{:.2f}".format(bot.t_kill)}, end_frame={bot.end_frame}, first_shot={"{:.2f}".format(bot.first_shot)}, first_shot_frame={bot.first_shot_frame}, nr_shots={bot.nr_shots}, headshots={bot.headshots}, shots_frames: {bot.shots_frames}, reaction_time= {"{:.2f}".format(bot.reaction_time)}, time_to_kill={"{:.2f}".format(bot.time_to_kill)}, headshot_percentage={"{:.2f}".format(bot.headshot_percentage)}, flick_accuracy={"{:.2f}".format(bot.flick_accuracy)}, time_on_target={"{:.2f}".format(bot.time_on_target)}")
                 print(f"ID: {bot.id}, t_spawn={bot.t_spawn}, start_frame={bot.start_frame}", end=" ")
                 print(f"t_kill={bot.t_kill}, end_frame={bot.end_frame}", end=" ")
-                print(f"first_shot={bot.first_shot}, first_shot_frame={bot.first_shot_frame} nr_shots={bot.nr_shots}, headshots={bot.headshots}")
+                print(f"first_shot={bot.first_shot}, first_shot_frame={bot.first_shot_frame} nr_shots={bot.nr_shots}, headshots={bot.headshots}, shots_frames: {bot.shots_frames}")
                 print(f"reaction_time= {bot.reaction_time}, time_to_kill={bot.time_to_kill}, headshot_percentage={bot.headshot_percentage}, flick_accuracy={bot.flick_accuracy}, time_on_target={bot.time_on_target}")
             except Exception as e:
                 pass
@@ -468,7 +467,7 @@ class Analysis:
         self.video_path = video_path
         #self.results_location = results_location
         
-        self.utils = Methods(results_location)
+        self.utils = Methods()
         
         self.logger = self.utils.setup_logger(results_path)
 
@@ -477,58 +476,85 @@ class Analysis:
         self.logger.info(f" Results location: {results_location}")
         
     
+    def normalize_data(self, statistics):
+        limits = {"reaction_time": {"range": [0, 2], "mode": "ascending"}, "time_to_kill": {"range": [0, 2], "mode": "ascending"}, "flick_accuracy": {"range": [0, 40], "mode": "ascending"}, "time_on_target": {"range": [0, 1], "mode": "ascending"}, "headshot_percentage": {"range": [0, 1], "mode": "descending"}, "shot_efficiency": {"range": [1, 5], "mode": "ascending"}}
+        
+        normalized_stats = {}
+        
+        for stat in statistics.items():
+            try:
+                lower_bound = limits[stat[0]]["range"][0]
+                upper_bound = limits[stat[0]]["range"][1]
+
+                if limits[stat[0]]["mode"] == "ascending":
+                    normalized_stats[stat[0]] = (upper_bound - stat[1]) / (upper_bound - lower_bound)
+                    if normalized_stats[stat[0]] < 0:
+                        normalized_stats[stat[0]] = 0
+                    #print(f"Stat {stat[0]}: value {stat[1]}  ==>  normalized={normalized_stats[stat[0]]}")
+
+                else:
+                    normalized_stats[stat[0]] = (stat[1] - lower_bound) / (upper_bound - lower_bound)
+                    if normalized_stats[stat[0]] > 1:
+                        normalized_stats[stat[0]] = 1
+            except Exception as e:
+                print(e)
+                
+        return normalized_stats
+
+
+    def calculate_score(self, normalized_stats):
+        weights = {"reaction_time": 0.18 , "time_to_kill": 0.12, "flick_accuracy": 0.24, "time_on_target": 0.08, "headshot_percentage": 0.22, "shot_efficiency": 0.16}
+        score = 0
+        
+        for stats in normalized_stats.items():
+            score += stats[1] * weights[stats[0]]
+        
+        return score
+
+
     def run(self):
         """
         
         """
-        
-        self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
         # Run the model on the desired video
-        image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json)
+        self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
+        image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json, self.logger)
         
         self.logger.info(f" Video analysis done.")
-        #image_dimensions = [2560, 1440]
         self.logger.info(f" Image dimensions: {image_dimensions}")
         
         crosshair = [image_dimensions[0]/2, image_dimensions[1]/2]
-        #print(f"Crosshair: {crosshair}")
         self.logger.info(f" Crosshair coordonates: {crosshair}")
         self.logger.info(f" Cleaning the data...")
         
         # clean data (head duplicates)
         clean_dataset = self.utils.clean_data(self.results_json)
-        #clean_dataset = r"C:\Users\bianc\Desktop\2026_06_05_11_17_45\bot-data-clean-results.json"
         self.logger.info(f" Clean data saved at {clean_dataset}!")
         
-        self.logger.info(f" Getting data per bot ...")
         # Get initial data per bot
+        self.logger.info(f" Getting data per bot ...")
         bot_data = self.utils.get_data_per_bot(clean_dataset)
         
-        self.logger.info(" Calculating the number of shots ...")
         # Calculate nr of shots/kill and atribute it to the respective bot object
-        self.utils.get_nr_shots(bot_data, clean_dataset, crosshair)
+        self.logger.info(" Calculating the number of shots ...")
+        self.utils.get_nr_shots(bot_data, clean_dataset)
 
         self.logger.info(" Calculating statistics ...")
         statistics = self.utils.statistics_calculation(bot_data, clean_dataset, crosshair)
         
-        self.utils.show_bot_data(bot_data)
+        self.utils.show_bot_data(bot_data, self.logger)
         
         print(f"\nStatistica: {statistics}")
         self.logger.info(f" Statistics: {statistics}")
         
+        norm = self.normalize_data(statistics)
+        self.logger.info(f" Normalized: {norm}")
+        print(f"\nNormalized: {norm}")
+        
+        scor = self.calculate_score(norm)
+        print(scor)
+        self.logger.info(f" Final score: {scor}")
+        
         self.logger.info(" Done!")    
         
         return statistics
-
-
-# if __name__ == "__main__":
-#     yolo_p = r"C:\Users\bianc\Desktop\Facultate\Licenta\Fisiere\Runs\best-26.pt"
-    
-#     #video_p = r"C:\Users\bianc\Desktop\Facultate\Licenta\Fisiere\Video\1.4.1.mp4"
-#     video_p = r"C:\Users\bianc\Desktop\Facultate\Licenta\Fisiere\Video\1.5.mp4"
-
-#     #results_p = r"C:\Users\Gamebox\Desktop\Licenta-diverse"
-#     results_location = r"C:\Users\bianc\Desktop"
-    
-#     #---------------------------------------------------------------------------------------
-    
