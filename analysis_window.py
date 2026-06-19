@@ -1,7 +1,8 @@
 # settings_window.py
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QLabel, QFileDialog, QPushButton, QGridLayout
-from PySide6.QtCore import Qt, QSize
-from analyse import Analysis
+from PySide6.QtWidgets import QMainWindow, QWidget, QLabel, QFileDialog, QPushButton, QGridLayout
+from PySide6.QtCore import Qt, QSize, QThreadPool
+#from analyse import Analysis
+from worker import Worker
 
 class AnalysisWindow(QMainWindow):
     def __init__(self):
@@ -11,7 +12,8 @@ class AnalysisWindow(QMainWindow):
         height = 500
         self.setFixedSize(QSize(width, height))
         self.setWindowTitle("Loxi Analysis")
-        
+        self.threadpool = QThreadPool()
+
         container = QWidget()
         self.setCentralWidget(container)
         
@@ -39,16 +41,19 @@ class AnalysisWindow(QMainWindow):
     
     
     def browse_video(self):
-        self.file_path, _ = QFileDialog.getOpenFileName(self, "Select File", "", "(*.mp4)")
-        if self.file_path:
+        browse_path, _ = QFileDialog.getOpenFileName(self, "Select File", "", "(*.mp4)")
+        
+        if browse_path:
+            self.file_path = browse_path
             self.file_path_label.setText(self.file_path)
             self.start_analysis.setVisible(True)
-
+        else:
+            self.file_path_label.setText("")
+            self.start_analysis.setVisible(False)
 
     def analyse(self):
         self.start_analysis.setVisible(False)
         self.browse.setDisabled(True)
-        self.status_label.setText("Analyzing...")
         
         #yolo_path = r"C:\Users\bianc\Desktop\Facultate\Licenta\LoxiAnalysisApp\files\best.pt"
         yolo_path = r"C:\Users\Gamebox\Desktop\train3-headshots\weights\best.pt"
@@ -59,7 +64,18 @@ class AnalysisWindow(QMainWindow):
         #results_location = r"C:\Users\bianc\Desktop"
         results_location = r"C:\Users\Gamebox\Desktop\Licenta-diverse"
 
-        analysis_object = Analysis(results_location, yolo_path, video_path)
-        statistics = analysis_object.run()
-        
-        self.status_label.setText(str(statistics))
+        #self.threadpool = QThreadPool()
+        worker = Worker(results_location, yolo_path, video_path, self.status_label)
+        worker.signals.finished.connect(self.update_gui)
+        worker.signals.error.connect(self.error_analysis)
+
+        self.threadpool.start(worker)
+    
+    def update_gui(self):
+        self.start_analysis.setVisible(True)
+        self.browse.setDisabled(False)
+    
+    def error_analysis(self, err_info):
+        self.status_label.setText(str(err_info))
+        self.update_gui()
+

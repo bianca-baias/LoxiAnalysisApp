@@ -456,7 +456,9 @@ class Methods:
 
 
 class Analysis:
-    def __init__(self, results_location, yolo_path, video_path):
+    def __init__(self, results_location, yolo_path, video_path, label):
+        self.status_label = label
+
         timestamp = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         results_path = os.path.join(results_location, timestamp)
         
@@ -517,6 +519,7 @@ class Analysis:
         
         """
         # Run the model on the desired video
+        self.status_label.setText("Analyzing video...")
         self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
         image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json, self.logger)
         
@@ -539,6 +542,7 @@ class Analysis:
         self.logger.info(" Calculating the number of shots ...")
         self.utils.get_nr_shots(bot_data, clean_dataset)
 
+        self.status_label.setText("Generating statistics...")
         self.logger.info(" Calculating statistics ...")
         statistics = self.utils.statistics_calculation(bot_data, clean_dataset, crosshair)
         
@@ -551,10 +555,12 @@ class Analysis:
         self.logger.info(f" Normalized: {norm}")
         print(f"\nNormalized: {norm}")
         
+        self.status_label.setText("Calculating the final score...")
         scor = self.calculate_score(norm)
         print(scor)
         self.logger.info(f" Final score: {scor}")
         
+        self.status_label.setText(f"Your score is {"{:.2f}".format(scor*100)}")
         self.logger.info(" Done!")    
         
         return statistics
