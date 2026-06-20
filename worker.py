@@ -8,9 +8,9 @@ class WorkerSignals(QObject):
 
 
 class Worker(QRunnable):
-    def __init__(self, results_location, yolo_path, video_path, label):
+    def __init__(self, yolo_path, video_path, label):
         super().__init__()
-        self.results_location = results_location
+
         self.yolo_path = yolo_path
         self.video_path = video_path
         self.status_label = label
@@ -20,7 +20,7 @@ class Worker(QRunnable):
     def run(self):
         try:
             print("Thread started")
-            analysis_object = Analysis(self.results_location, self.yolo_path, self.video_path, self.status_label)
+            analysis_object = Analysis(self.yolo_path, self.video_path, self.status_label)
             analysis_object.run()
         except Exception as e:
             self.signals.error.emit(e)

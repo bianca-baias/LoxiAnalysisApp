@@ -1,0 +1,7 @@
+MainWindow{
+    background-image: url(images/background.jpg);
+}
+
+AnalysisWindow{
+    background: #111922;
+}

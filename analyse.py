@@ -451,31 +451,37 @@ class Methods:
                 print(f"reaction_time= {bot.reaction_time}, time_to_kill={bot.time_to_kill}, headshot_percentage={bot.headshot_percentage}, flick_accuracy={bot.flick_accuracy}, time_on_target={bot.time_on_target}")
             except Exception as e:
                 pass
+    
+    def check_destination_directory(self, appdata_path):
+        if not os.path.exists(appdata_path):
+            os.mkdir(appdata_path)
 ################################################################################################################################
 
 
 
 class Analysis:
-    def __init__(self, results_location, yolo_path, video_path, label):
+    def __init__(self, yolo_path, video_path, label):
+        
         self.status_label = label
+        appdata_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis")
+
+        self.utils = Methods()
+        self.utils.check_destination_directory(appdata_path)
 
         timestamp = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-        results_path = os.path.join(results_location, timestamp)
+        results_path = os.path.join(appdata_path, timestamp)
         
         os.mkdir(results_path)
         self.results_json = os.path.join(results_path, "bot-data.json")
         
         self.yolo_path = yolo_path
         self.video_path = video_path
-        #self.results_location = results_location
-        
-        self.utils = Methods()
         
         self.logger = self.utils.setup_logger(results_path)
 
         self.logger.info(f" ---Starting a new run---")
         self.logger.info(f" Video for analysis: {video_path}")
-        self.logger.info(f" Results location: {results_location}")
+        self.logger.info(f" Results location: {appdata_path}")
         
     
     def normalize_data(self, statistics):
@@ -518,6 +524,7 @@ class Analysis:
         """
         
         """
+
         # Run the model on the desired video
         self.status_label.setText("Analyzing video...")
         self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
