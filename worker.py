@@ -2,18 +2,21 @@ from PySide6.QtCore import QObject, QRunnable, Slot, Signal
 from analyse import Analysis
 
 class WorkerSignals(QObject):
-    finished = Signal() 
+    finished = Signal(dict, float) 
     error = Signal(tuple)
     #progress = Signal(tuple) 
 
 
 class Worker(QRunnable):
-    def __init__(self, yolo_path, video_path, label):
+    def __init__(self, yolo_path, video_path, label, limits):
         super().__init__()
 
         self.yolo_path = yolo_path
         self.video_path = video_path
         self.status_label = label
+        self.statistics = {}
+        self.score = 0.0
+        self.limits = limits
         self.signals = WorkerSignals()
 
     @Slot()
@@ -21,11 +24,12 @@ class Worker(QRunnable):
         try:
             print("Thread started")
             analysis_object = Analysis(self.yolo_path, self.video_path, self.status_label)
-            analysis_object.run()
+            self.statistics, self.score = analysis_object.run(self.limits)
+            self.signals.finished.emit(self.statistics, self.score)
         except Exception as e:
             self.signals.error.emit(e)
+            print(f"Error while running the analysis: {e}")
         finally:
-            self.signals.finished.emit()
             print("Ending thread!")
             self.autoDelete()
             

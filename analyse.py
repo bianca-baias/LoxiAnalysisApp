@@ -464,7 +464,7 @@ class Analysis:
         
         self.status_label = label
         appdata_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis")
-
+        
         self.utils = Methods()
         self.utils.check_destination_directory(appdata_path)
 
@@ -484,8 +484,8 @@ class Analysis:
         self.logger.info(f" Results location: {appdata_path}")
         
     
-    def normalize_data(self, statistics):
-        limits = {"reaction_time": {"range": [0, 2], "mode": "ascending"}, "time_to_kill": {"range": [0, 2], "mode": "ascending"}, "flick_accuracy": {"range": [0, 40], "mode": "ascending"}, "time_on_target": {"range": [0, 1], "mode": "ascending"}, "headshot_percentage": {"range": [0, 1], "mode": "descending"}, "shot_efficiency": {"range": [1, 5], "mode": "ascending"}}
+    def normalize_data(self, statistics, limits):
+        #limits = {"reaction_time": {"range": [0, 2], "mode": "ascending"}, "time_to_kill": {"range": [0, 2], "mode": "ascending"}, "flick_accuracy": {"range": [0, 40], "mode": "ascending"}, "time_on_target": {"range": [0, 1], "mode": "ascending"}, "headshot_percentage": {"range": [0, 1], "mode": "descending"}, "shot_efficiency": {"range": [1, 5], "mode": "ascending"}}
         
         normalized_stats = {}
         
@@ -520,7 +520,7 @@ class Analysis:
         return score
 
 
-    def run(self):
+    def run(self, limits):
         """
         
         """
@@ -558,7 +558,7 @@ class Analysis:
         print(f"\nStatistica: {statistics}")
         self.logger.info(f" Statistics: {statistics}")
         
-        norm = self.normalize_data(statistics)
+        norm = self.normalize_data(statistics, limits)
         self.logger.info(f" Normalized: {norm}")
         print(f"\nNormalized: {norm}")
         
@@ -570,4 +570,4 @@ class Analysis:
         self.status_label.setText(f"Your score is {"{:.2f}".format(scor*100)}")
         self.logger.info(" Done!")    
         
-        return statistics
+        return statistics, scor

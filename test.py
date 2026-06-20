@@ -1,21 +1,9 @@
-import logging, os
+from results_table import TableModel
 
-class Methods:
-    def __init__(self, results_path):
-        self.logger = self.setup_logger(results_path)
-        
-    def setup_logger(self, destination_path):
-        log_name = "test.log"
-        logger_path = os.path.join(destination_path, log_name)
-        
-        if os.path.exists(logger_path):
-            os.remove(logger_path)
-            
-        logger = logging.getLogger()
-        logging.basicConfig(filename=logger_path, level=logging.INFO)
-        logger.info(f" Initializing logger...")
-        
-        return logger
+statistics = {'flick_accuracy': 30.73477911992557, 'headshot_percentage': 0.0, 'headshots': 0, 'reaction_time': 0.2, 'shot_efficiency': 4.0, 'shots': 4, 'time_on_target': 0.5, 'time_to_kill': 0.5666666666666667}
+score = 0.38359132528044654
 
-pt = r"C:\Users\Gamebox\Desktop"
-mt = Methods(pt)
+average_value = 0.5
+average_range = 10
+average_limit_low = average_value - (average_range/100*average_value)
+print(average_limit_low)
