@@ -1,12 +1,11 @@
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import Qt
+from PySide6 import QtWidgets
 
 class TableModel(QtWidgets.QTableWidget):
     def __init__(self):
         super().__init__()
         self.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         #self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
-
+        
         self.info = {"reaction_time": {"low": "After the bot appears, you engage quicly", "average": "Your reaction time is average", "high": "After a bot appears, you take a long time to enagage with it"},
                     "flick_accuracy": {"low": "Your flick is precise", "average": "Your flick accuracy is average", "high": "You over/under flick"},
                     "headshot_percentage": {"low": "You have a low headshot count", "average": "You have an average headshot count", "high": "You have a high headshot count"},
@@ -33,6 +32,7 @@ class TableModel(QtWidgets.QTableWidget):
         
         header = self.horizontalHeader()
         header.setSectionResizeMode(self.column_labels.index("Additional info"), QtWidgets.QHeaderView.ResizeMode.Stretch)
+        
         
     def set_column_labels(self):
         self.setHorizontalHeaderLabels(self.column_labels)
@@ -64,7 +64,7 @@ class TableModel(QtWidgets.QTableWidget):
         value_column = self.column_labels.index("Value")
         meaning_column = self.column_labels.index("Additional info")
         score_column = self.column_labels.index("Score")
-        information = self.gather_info()
+        information = self.gather_info()        
         
         for i in range(len(self.row_labels)):
             label = self.row_labels[i]

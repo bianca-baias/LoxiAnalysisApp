@@ -5,12 +5,10 @@ import math
 import os
 import datetime
 import logging
-
+from exceptions import NoBotDetected, NoKillDetected
 class Bot:
     def __init__(self, id):
         self.id = id
-
-
 
 class Methods:
 
@@ -39,21 +37,21 @@ class Methods:
         
         # Load your trained model
         model = YOLO(yolo_path)
-
+        
         #img_path = r"C:\Users\Gamebox\Documents\Bandicam\bandicam 2026-03-29 13-10-17-024.jpg"
         # Run inference on an image
         #results = model(img_path, show=False, save=True)
-
-
+        
+        
         # Run tracking on a video
         results = model.track(
             source=video_path,
             show=False,
             save=True
         )
-
+        
         output = []
-
+        
         for r in results:
             for box in r.boxes:
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
@@ -70,7 +68,7 @@ class Methods:
                     }
                 }
                 output.append(detection)
-
+        
         # save to file
         with open(results_path, "w") as f:
             json.dump(output, f, indent=4)
@@ -114,7 +112,7 @@ class Methods:
             shot_flag = False
             kill_flag = False
             headshot_flag = False
-
+            
             frame_detections = []
             for r in detections:
                 for box in r.boxes:
@@ -181,9 +179,9 @@ class Methods:
         
         with open(results_json, 'r') as json_data:
             results = json.load(json_data)
-
+        
         shot_flag = False
-
+        
         for bot in bot_data:
             bot.nr_shots = 0
             bot.headshots = 0
@@ -194,7 +192,6 @@ class Methods:
             
             try:
                 counter = 0
-                good_shot = False
                 
                 # starting from 2 frames after the bot appeared in fov, to eliminate the accidental counting of shots
                 for frame in range(bot.start_frame + 2, bot.end_frame):
@@ -259,6 +256,8 @@ class Methods:
         bot_data = []
         kill_noted = False
         counter = 0
+        #indicates if we have at least one kill in the video
+        kill_flag = False
         
         for frame in results:
             try:
@@ -277,6 +276,9 @@ class Methods:
                 else:        
                     if frame["kill"] == True:
                         # if we did not mark this kill
+                        # set kill flag to true to indicate we have at least one kill in the video
+                        kill_flag = True
+                        
                         if not kill_noted:
                             bot_data[counter-1].t_kill = frame["time"]
                             bot_data[counter-1].end_frame = frame["frame"]
@@ -286,7 +288,11 @@ class Methods:
                         kill_noted = False
             except Exception as e:
                 pass
-
+        if len(bot_data) == 0:
+            raise NoBotDetected
+        elif not kill_flag:
+            raise NoKillDetected
+        
         return bot_data
 
 
@@ -350,7 +356,7 @@ class Methods:
                 pass
         
         distanta /= counter 
-
+        
         return distanta
 
 
@@ -358,10 +364,10 @@ class Methods:
         #   How long is the crosshair on the head before firing the final shot
         
         timp = 0
-
+        
         with open(results_json, 'r') as json_data:
             results = json.load(json_data)
-
+        
         counter = 0
         for bot in bot_data:
             #print("\n--------------------------------")
@@ -390,12 +396,12 @@ class Methods:
                         #print(bot.time_on_target)
                         break
                 timp += bot.time_on_target
-
+            
             except Exception as e:
                 print(e)
         
         timp /= counter 
-
+        
         return timp
 
 
@@ -406,10 +412,10 @@ class Methods:
         
         with open(results_json, 'r') as json_data:
             results = json.load(json_data)
-
+        
         clean_results = []
         heads_list = []
-
+        
         for data in range(len(results)):
             heads_list = []
             clean_results.append(results[data].copy())
@@ -440,7 +446,7 @@ class Methods:
         
         return new_path
         
-        
+
     def show_bot_data(self, bot_data, logger):
         for bot in bot_data:
             try:
@@ -467,7 +473,7 @@ class Analysis:
         
         self.utils = Methods()
         self.utils.check_destination_directory(appdata_path)
-
+        
         timestamp = str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         results_path = os.path.join(appdata_path, timestamp)
         
@@ -478,7 +484,7 @@ class Analysis:
         self.video_path = video_path
         
         self.logger = self.utils.setup_logger(results_path)
-
+        
         self.logger.info(f" ---Starting a new run---")
         self.logger.info(f" Video for analysis: {video_path}")
         self.logger.info(f" Results location: {appdata_path}")
@@ -493,13 +499,13 @@ class Analysis:
             try:
                 lower_bound = limits[stat[0]]["range"][0]
                 upper_bound = limits[stat[0]]["range"][1]
-
+                
                 if limits[stat[0]]["mode"] == "ascending":
                     normalized_stats[stat[0]] = (upper_bound - stat[1]) / (upper_bound - lower_bound)
                     if normalized_stats[stat[0]] < 0:
                         normalized_stats[stat[0]] = 0
                     #print(f"Stat {stat[0]}: value {stat[1]}  ==>  normalized={normalized_stats[stat[0]]}")
-
+                
                 else:
                     normalized_stats[stat[0]] = (stat[1] - lower_bound) / (upper_bound - lower_bound)
                     if normalized_stats[stat[0]] > 1:
@@ -524,50 +530,56 @@ class Analysis:
         """
         
         """
-
-        # Run the model on the desired video
-        self.status_label.setText("Analyzing video...")
-        self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
-        image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json, self.logger)
-        
-        self.logger.info(f" Video analysis done.")
-        self.logger.info(f" Image dimensions: {image_dimensions}")
-        
-        crosshair = [image_dimensions[0]/2, image_dimensions[1]/2]
-        self.logger.info(f" Crosshair coordonates: {crosshair}")
-        self.logger.info(f" Cleaning the data...")
-        
-        # clean data (head duplicates)
-        clean_dataset = self.utils.clean_data(self.results_json)
-        self.logger.info(f" Clean data saved at {clean_dataset}!")
-        
-        # Get initial data per bot
-        self.logger.info(f" Getting data per bot ...")
-        bot_data = self.utils.get_data_per_bot(clean_dataset)
-        
-        # Calculate nr of shots/kill and atribute it to the respective bot object
-        self.logger.info(" Calculating the number of shots ...")
-        self.utils.get_nr_shots(bot_data, clean_dataset)
-
-        self.status_label.setText("Generating statistics...")
-        self.logger.info(" Calculating statistics ...")
-        statistics = self.utils.statistics_calculation(bot_data, clean_dataset, crosshair)
-        
-        self.utils.show_bot_data(bot_data, self.logger)
-        
-        print(f"\nStatistica: {statistics}")
-        self.logger.info(f" Statistics: {statistics}")
-        
-        norm = self.normalize_data(statistics, limits)
-        self.logger.info(f" Normalized: {norm}")
-        print(f"\nNormalized: {norm}")
-        
-        self.status_label.setText("Calculating the final score...")
-        scor = self.calculate_score(norm)
-        print(scor)
-        self.logger.info(f" Final score: {scor}")
-        
-        self.status_label.setText(f"Your score is {"{:.2f}".format(scor*100)}")
-        self.logger.info(" Done!")    
-        
-        return statistics, scor
+        try:
+            # Run the model on the desired video
+            self.status_label.setText("Analyzing video...")
+            self.logger.info(f" Analysing video. Results will be saved at {self.results_json}")
+            image_dimensions =  self.utils.run_analysis(self.yolo_path, self.video_path, self.results_json, self.logger)
+            
+            self.logger.info(f" Video analysis done.")
+            self.logger.info(f" Image dimensions: {image_dimensions}")
+            
+            crosshair = [image_dimensions[0]/2, image_dimensions[1]/2]
+            self.logger.info(f" Crosshair coordonates: {crosshair}")
+            self.logger.info(f" Cleaning the data...")
+            
+            # clean data (head duplicates)
+            clean_dataset = self.utils.clean_data(self.results_json)
+            self.logger.info(f" Clean data saved at {clean_dataset}!")
+            
+            # Get initial data per bot
+            self.logger.info(f" Getting data per bot ...")
+            bot_data = self.utils.get_data_per_bot(clean_dataset)
+            
+            # Calculate nr of shots/kill and atribute it to the respective bot object
+            self.logger.info(" Calculating the number of shots ...")
+            self.utils.get_nr_shots(bot_data, clean_dataset)
+            
+            self.status_label.setText("Generating statistics...")
+            self.logger.info(" Calculating statistics ...")
+            statistics = self.utils.statistics_calculation(bot_data, clean_dataset, crosshair)
+            
+            self.utils.show_bot_data(bot_data, self.logger)
+            
+            print(f"\nStatistica: {statistics}")
+            self.logger.info(f" Statistics: {statistics}")
+            
+            norm = self.normalize_data(statistics, limits)
+            self.logger.info(f" Normalized: {norm}")
+            print(f"\nNormalized: {norm}")
+            
+            self.status_label.setText("Calculating the final score...")
+            scor = self.calculate_score(norm)
+            print(scor)
+            self.logger.info(f" Final score: {scor}")
+            
+            self.status_label.setText(f"Your score is {"{:.2f}".format(scor*100)}")
+            self.logger.info(" Done!")    
+            
+            return statistics, scor
+        except NoBotDetected as e:
+            raise NoBotDetected
+        except NoKillDetected as e:
+            raise NoKillDetected
+        except Exception as e:
+            raise Exception

@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QPushButton
-from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QSize, Qt
 from analysis_window import AnalysisWindow
 from results_window import ResultsWindow
