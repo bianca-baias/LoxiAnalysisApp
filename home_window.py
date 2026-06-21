@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         container.setLayout(layout)
         
         get_started_button = QPushButton("Get started")
+        get_started_button.setObjectName("browse-button")
         get_started_button.setFixedWidth(125)
         get_started_button.clicked.connect(self.move_to_analysis)
         

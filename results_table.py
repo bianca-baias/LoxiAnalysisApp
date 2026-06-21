@@ -43,7 +43,8 @@ class TableModel(QtWidgets.QTableWidget):
         headers = [label.replace("_", " ").capitalize() for label in self.row_labels]
         self.setVerticalHeaderLabels(headers)
         for item in range(len(headers)):
-            self.verticalHeaderItem(item).setToolTip(f"{limits[self.row_labels[item]]["range"][0]} -> {limits[self.row_labels[item]]["range"][1]}")
+            self.verticalHeaderItem(item).setToolTip(f"{limits[self.row_labels[item]]["range"][0]} -> {limits[self.row_labels[item]]["range"][1]}+")
+    
     
     def gather_info(self):
         information = {}
