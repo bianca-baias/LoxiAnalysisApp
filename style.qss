@@ -1,0 +1,22 @@
+MainWindow{
+    background-image: url(images/background.jpg);
+}
+
+AnalysisWindow{
+    background: #111922;
+}
+
+QPushButton{
+    background-color: #b50415;
+    color: white;
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+
+QPushButton:hover{
+    background-color: #85010e;
+}
+
+QPushButton:disabled {
+    background-color: #c43140;
+}
