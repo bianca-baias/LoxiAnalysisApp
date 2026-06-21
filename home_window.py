@@ -1,13 +1,11 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QPushButton
 from PySide6.QtCore import QSize, Qt
 from analysis_window import AnalysisWindow
-from results_window import ResultsWindow
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.analysis_window = AnalysisWindow(self)
-        self.results_window = ResultsWindow()
         
         width = 900
         height = 500

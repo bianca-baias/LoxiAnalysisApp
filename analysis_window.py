@@ -1,5 +1,5 @@
 # settings_window.py
-from PySide6.QtWidgets import QMainWindow, QWidget, QLabel, QFileDialog, QPushButton, QGridLayout, QHBoxLayout, QSizePolicy
+from PySide6.QtWidgets import QMainWindow, QWidget, QLabel, QFileDialog, QPushButton, QGridLayout, QHBoxLayout
 from PySide6.QtCore import Qt, QSize, QThreadPool
 from worker import Worker
 from results_table import TableModel
@@ -101,17 +101,20 @@ class AnalysisWindow(QMainWindow):
 
 
     def analyse(self):
-        self.start_analysis.setVisible(False)
-        self.browse.setDisabled(True)
-        self.home_button.setVisible(False)
-        
-        video_path = self.file_path
-        
-        worker = Worker(self.yolo_path, video_path, self.status_label, self.limits)
-        worker.signals.finished.connect(self.successful_analysis)
-        worker.signals.error.connect(self.error_analysis)
-    
-        self.threadpool.start(worker)
+        try:
+            self.start_analysis.setVisible(False)
+            self.browse.setDisabled(True)
+            self.home_button.setVisible(False)
+            
+            video_path = self.file_path
+            
+            worker = Worker(self.yolo_path, video_path, self.status_label, self.limits)
+            worker.signals.finished.connect(self.successful_analysis)
+            worker.signals.error.connect(self.error_analysis)
+            self.threadpool.start(worker)
+        except Exception as e:
+            #print(e)
+            self.error_analysis(f"Error while running the anaysis: {e}")
     
     
     def update_gui(self):
@@ -120,20 +123,24 @@ class AnalysisWindow(QMainWindow):
     
     
     def display_table(self, statistics, score):
-        print(f"Displaying table. \nScore={score}, \nStats={statistics}")
-        self.status_label.setVisible(False)
-        self.table.create_table(statistics, score, self.limits)
-        
-        self.table.doItemsLayout()
-        total_height = (
-            self.table.horizontalHeader().height() +
-            sum(self.table.rowHeight(i) for i in range(self.table.rowCount())) +
-            self.table.frameWidth() * 2 
-        )
-        self.table.setFixedHeight(total_height)
-        
-        self.table.setVisible(True)
-        self.table.setShowGrid(False)
+        try:
+            #print(f"Displaying table. \nScore={score}, \nStats={statistics}")
+            self.status_label.setVisible(False)
+            self.table.create_table(statistics, score, self.limits)
+            
+            self.table.doItemsLayout()
+            total_height = (
+                self.table.horizontalHeader().height() +
+                sum(self.table.rowHeight(i) for i in range(self.table.rowCount())) +
+                self.table.frameWidth() * 2 
+            )
+            self.table.setFixedHeight(total_height)
+            
+            self.table.setVisible(True)
+            self.table.setShowGrid(False)
+        except Exception as e:
+            #print(e)
+            self.error_analysis(f"Error while creating table: {e}")
             
             
     def successful_analysis(self, statistic, score):
@@ -146,5 +153,6 @@ class AnalysisWindow(QMainWindow):
     def error_analysis(self, err_info):
         self.status_label.setText(str(err_info))
         self.status_label.setVisible(True)
+        self.table.setVisible(False)
         self.update_gui()
 

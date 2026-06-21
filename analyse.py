@@ -230,9 +230,9 @@ class Methods:
                         # if it is not the first frame of the shot animation, dont count it as a new shot
                         shot_flag = False
                         
-                        
             except Exception as e:
-                print(e)
+                #print(e)
+                pass
             
 
 
@@ -326,7 +326,8 @@ class Methods:
             statistic_results["flick_accuracy"] = self.flick_accuracy(bot_data, results_json, crosshair)
             statistic_results["time_on_target"] = self.time_on_target(bot_data, results_json, crosshair)
         except Exception as e:
-            print(e)
+            #print(e)
+            pass
 
         return statistic_results
 
@@ -398,7 +399,8 @@ class Methods:
                 timp += bot.time_on_target
             
             except Exception as e:
-                print(e)
+                #print(e)
+                pass
         
         timp /= counter 
         
@@ -451,10 +453,10 @@ class Methods:
         for bot in bot_data:
             try:
                 logger.info(f" ID: {bot.id}, t_spawn={"{:.2f}".format(bot.t_spawn)}, start_frame={bot.start_frame}, t_kill={"{:.2f}".format(bot.t_kill)}, end_frame={bot.end_frame}, first_shot={"{:.2f}".format(bot.first_shot)}, first_shot_frame={bot.first_shot_frame}, nr_shots={bot.nr_shots}, headshots={bot.headshots}, shots_frames: {bot.shots_frames}, reaction_time= {"{:.2f}".format(bot.reaction_time)}, time_to_kill={"{:.2f}".format(bot.time_to_kill)}, headshot_percentage={"{:.2f}".format(bot.headshot_percentage)}, flick_accuracy={"{:.2f}".format(bot.flick_accuracy)}, time_on_target={"{:.2f}".format(bot.time_on_target)}")
-                print(f"ID: {bot.id}, t_spawn={bot.t_spawn}, start_frame={bot.start_frame}", end=" ")
-                print(f"t_kill={bot.t_kill}, end_frame={bot.end_frame}", end=" ")
-                print(f"first_shot={bot.first_shot}, first_shot_frame={bot.first_shot_frame} nr_shots={bot.nr_shots}, headshots={bot.headshots}, shots_frames: {bot.shots_frames}")
-                print(f"reaction_time= {bot.reaction_time}, time_to_kill={bot.time_to_kill}, headshot_percentage={bot.headshot_percentage}, flick_accuracy={bot.flick_accuracy}, time_on_target={bot.time_on_target}")
+                # print(f"ID: {bot.id}, t_spawn={bot.t_spawn}, start_frame={bot.start_frame}", end=" ")
+                # print(f"t_kill={bot.t_kill}, end_frame={bot.end_frame}", end=" ")
+                # print(f"first_shot={bot.first_shot}, first_shot_frame={bot.first_shot_frame} nr_shots={bot.nr_shots}, headshots={bot.headshots}, shots_frames: {bot.shots_frames}")
+                # print(f"reaction_time= {bot.reaction_time}, time_to_kill={bot.time_to_kill}, headshot_percentage={bot.headshot_percentage}, flick_accuracy={bot.flick_accuracy}, time_on_target={bot.time_on_target}")
             except Exception as e:
                 pass
     
@@ -511,7 +513,8 @@ class Analysis:
                     if normalized_stats[stat[0]] > 1:
                         normalized_stats[stat[0]] = 1
             except Exception as e:
-                print(e)
+                #print(e)
+                pass
                 
         return normalized_stats
 
@@ -561,16 +564,16 @@ class Analysis:
             
             self.utils.show_bot_data(bot_data, self.logger)
             
-            print(f"\nStatistica: {statistics}")
+            #print(f"\nStatistica: {statistics}")
             self.logger.info(f" Statistics: {statistics}")
             
             norm = self.normalize_data(statistics, limits)
             self.logger.info(f" Normalized: {norm}")
-            print(f"\nNormalized: {norm}")
+            #print(f"\nNormalized: {norm}")
             
             self.status_label.setText("Calculating the final score...")
             scor = self.calculate_score(norm)
-            print(scor)
+            #print(scor)
             self.logger.info(f" Final score: {scor}")
             
             self.status_label.setText(f"Your score is {"{:.2f}".format(scor*100)}")

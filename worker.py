@@ -5,7 +5,6 @@ from exceptions import NoBotDetected, NoKillDetected
 class WorkerSignals(QObject):
     finished = Signal(dict, float) 
     error = Signal(tuple)
-    #progress = Signal(tuple) 
 
 
 class Worker(QRunnable):
@@ -23,21 +22,21 @@ class Worker(QRunnable):
     @Slot()
     def run(self):
         try:
-            print("Thread started")
+            #print("Thread started")
             analysis_object = Analysis(self.yolo_path, self.video_path, self.status_label)
             self.statistics, self.score = analysis_object.run(self.limits)
             self.signals.finished.emit(self.statistics, self.score)
         except NoBotDetected:
             self.signals.error.emit("No bot detected in the video!")
-            print(f"No bot detected in the video selected.")
+            #print(f"No bot detected in the video selected.")
         except NoKillDetected:
             self.signals.error.emit("No kill detected in the video!")
-            print(f"No kill detected in the video selected.")
+            #print(f"No kill detected in the video selected.")
         except Exception as e:
             self.signals.error.emit(e)
-            print(f"Error while running the analysis: {e}")
+            #print(f"Error while running the analysis: {e}")
         finally:
-            print("Ending thread!")
+            #print("Ending thread!")
             self.autoDelete()
             
             

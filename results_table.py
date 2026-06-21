@@ -1,4 +1,5 @@
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtGui
+from PySide6.QtCore import Qt
 
 class TableModel(QtWidgets.QTableWidget):
     def __init__(self):
@@ -26,9 +27,9 @@ class TableModel(QtWidgets.QTableWidget):
         self.setRowCount(len(self.row_labels))
         
         self.set_column_labels()
-        self.set_row_labels()
+        self.set_row_labels(limits)
         
-        self.populate_table()
+        self.populate_table(limits)
         
         header = self.horizontalHeader()
         header.setSectionResizeMode(self.column_labels.index("Additional info"), QtWidgets.QHeaderView.ResizeMode.Stretch)
@@ -38,8 +39,11 @@ class TableModel(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(self.column_labels)
     
     
-    def set_row_labels(self):
-        self.setVerticalHeaderLabels(self.row_labels)
+    def set_row_labels(self, limits):
+        headers = [label.replace("_", " ").capitalize() for label in self.row_labels]
+        self.setVerticalHeaderLabels(headers)
+        for item in range(len(headers)):
+            self.verticalHeaderItem(item).setToolTip(f"{limits[self.row_labels[item]]["range"][0]} -> {limits[self.row_labels[item]]["range"][1]}")
     
     def gather_info(self):
         information = {}
@@ -60,7 +64,15 @@ class TableModel(QtWidgets.QTableWidget):
         
         return information
 
-    def populate_table(self):
+    def set_color_of_cell(self, table_item, status, mode):
+        if (status == "low" and mode == "descending") or (status == "high" and mode =="ascending"):
+            table_item.setBackground(QtGui.QColor(168, 61, 42))
+        elif status == "average":
+            table_item.setBackground(QtGui.QColor(168, 134, 42))    
+        else:
+            table_item.setBackground(QtGui.QColor(42, 168, 57))
+
+    def populate_table(self, limits):
         value_column = self.column_labels.index("Value")
         meaning_column = self.column_labels.index("Additional info")
         score_column = self.column_labels.index("Score")
@@ -68,8 +80,16 @@ class TableModel(QtWidgets.QTableWidget):
         
         for i in range(len(self.row_labels)):
             label = self.row_labels[i]
-            self.setItem(i, value_column, QtWidgets.QTableWidgetItem(str("{:.4f}".format(self.data[label]))))
-            self.setItem(i, meaning_column, QtWidgets.QTableWidgetItem(self.info[label][information[label]]))
+            value_item =  QtWidgets.QTableWidgetItem(str("{:.4f}".format(self.data[label])))
+            value_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.setItem(i, value_column, value_item)
+            
+            meaning_item = QtWidgets.QTableWidgetItem(self.info[label][information[label]])            
+            self.set_color_of_cell(meaning_item, information[label], limits[label]["mode"])
+            self.setItem(i, meaning_column, meaning_item)
         
         self.setSpan(0, score_column, len(self.row_labels), 1)
-        self.setItem(0, score_column, QtWidgets.QTableWidgetItem(str("{:.2f}".format(self.score*100))))
+        score_item = QtWidgets.QTableWidgetItem(str("{:.2f}".format(self.score*100)))
+        score_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setItem(0, score_column, score_item)
+        
