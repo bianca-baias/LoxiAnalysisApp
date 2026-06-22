@@ -6,3 +6,8 @@ UI:
 
 Analysis:
 - I trained a YOLO model to detect objects (bot, head, shot, headshot, kill) in a Valorant - mode The Range video
+
+Setup the app folder:
+ - In Appdata/Local create a LoxiAnalysis folder.
+ - In the new folder, create the following 2 subfolder: Runs and Setup.
+ - In the Setup folder, import the yolo model and name it yolo.pt;

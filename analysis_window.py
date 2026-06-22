@@ -3,7 +3,8 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QLabel, QFileDialog, QPushBu
 from PySide6.QtCore import Qt, QSize, QThreadPool
 from worker import Worker
 from results_table import TableModel
-
+import os
+import exceptions
 
 class AnalysisWindow(QMainWindow):
     def __init__(self, home_window):
@@ -18,7 +19,7 @@ class AnalysisWindow(QMainWindow):
         self.home_window = home_window        
         
         self.limits = {"reaction_time": {"range": [0, 2], "mode": "ascending"}, "time_to_kill": {"range": [0, 2], "mode": "ascending"}, "flick_accuracy": {"range": [0, 40], "mode": "ascending"}, "time_on_target": {"range": [0, 1], "mode": "ascending"}, "headshot_percentage": {"range": [0, 1], "mode": "descending"}, "shot_efficiency": {"range": [1, 5], "mode": "ascending"}}
-        self.yolo_path = r"C:\Users\bianc\Desktop\Facultate\Licenta\LoxiAnalysisApp\files\best.pt"
+        self.yolo_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis/Setup/yolo.pt")
         
         container = QWidget()
         self.setCentralWidget(container)
@@ -77,7 +78,26 @@ class AnalysisWindow(QMainWindow):
         self.start_new.setVisible(False)
         self.layout.addWidget(self.start_new, 5, 3)
 
-    
+        self.check_appdata_directory()
+
+    def check_appdata_directory(self):
+        try:
+            if not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis")):
+                text = "Cannot find the app folder at 'Appdata/Local/LoxiAnalysis'.\nClose the application and create the folder with the requested subfolders and files."
+                raise exceptions.AppdataException()
+            elif not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis/Setup")): 
+                text = "Cannot find the setup folder at 'Appdata/Local/LoxiAnalysis/Setup' folder.\nClose the application and create the folder with the requested files."
+                raise exceptions.AppdataException()
+            elif not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis/Setup/yolo.pt")):
+                text = "Cannot find the yolo model at 'Appdata/Local/LoxiAnalysis/Setup/yolo.pt'.\nClose the application and import the model."
+                raise exceptions.AppdataException()
+        except exceptions.AppdataException:
+            self.error_analysis(text)
+            self.browse.setDisabled(True)
+            self.home_button.setDisabled(True)
+            self.start_new.setDisabled(True)
+            self.start_analysis.setDisabled(True)
+
     def browse_video(self):
         browse_path, _ = QFileDialog.getOpenFileName(self, "Select File", "", "(*.mp4)")
         

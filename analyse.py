@@ -471,7 +471,7 @@ class Analysis:
     def __init__(self, yolo_path, video_path, label):
         
         self.status_label = label
-        appdata_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis")
+        appdata_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis", "Runs")
         
         self.utils = Methods()
         self.utils.check_destination_directory(appdata_path)
@@ -585,4 +585,5 @@ class Analysis:
         except NoKillDetected as e:
             raise NoKillDetected
         except Exception as e:
+             
             raise Exception
