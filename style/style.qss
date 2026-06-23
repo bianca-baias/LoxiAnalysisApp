@@ -1,5 +1,5 @@
 MainWindow{
-    background-image: url(images/background.jpg);
+    background-image: url("__BACKGROUND__");
 }
 
 AnalysisWindow{

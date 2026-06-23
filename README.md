@@ -6,3 +6,4 @@ UI:
 
 Analysis:
 - I trained a YOLO model to detect objects (bot, head, shot, headshot, kill) in a Valorant - mode The Range video
+
