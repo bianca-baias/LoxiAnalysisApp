@@ -4,6 +4,3 @@ class NoBotDetected(Exception):
 
 class NoKillDetected(Exception):
     pass
-
-class AppdataException(Exception):
-    pass

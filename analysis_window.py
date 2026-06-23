@@ -1,10 +1,11 @@
 # settings_window.py
-from PySide6.QtWidgets import QMainWindow, QWidget, QLabel, QFileDialog, QPushButton, QGridLayout, QHBoxLayout, QProgressBar, QVBoxLayout, QSizePolicy
+from PySide6.QtWidgets import QMainWindow, QWidget, QLabel, QFileDialog, QPushButton, QGridLayout, QHBoxLayout, QProgressBar, QVBoxLayout
 from PySide6.QtCore import Qt, QSize, QThreadPool
 from worker import Worker
 from results_table import TableModel
-import os
-import exceptions
+from pathlib import Path
+import os, sys, shutil
+
 
 class AnalysisWindow(QMainWindow):
     def __init__(self, home_window):
@@ -19,8 +20,9 @@ class AnalysisWindow(QMainWindow):
         self.home_window = home_window        
         
         self.limits = {"reaction_time": {"range": [0, 2], "mode": "ascending"}, "time_to_kill": {"range": [0, 2], "mode": "ascending"}, "flick_accuracy": {"range": [0, 40], "mode": "ascending"}, "time_on_target": {"range": [0, 1], "mode": "ascending"}, "headshot_percentage": {"range": [0, 1], "mode": "descending"}, "shot_efficiency": {"range": [1, 5], "mode": "ascending"}}
-        self.yolo_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis/Setup/yolo.pt")
-        
+        yolo_path = "files/yolo.pt"
+        self.yolo_path = self.check_yolo_model(yolo_path)
+
         container = QWidget()
         self.setCentralWidget(container)
         
@@ -77,26 +79,31 @@ class AnalysisWindow(QMainWindow):
         self.start_new.clicked.connect(self.reset_ui)
         self.start_new.setVisible(False)
         self.layout.addWidget(self.start_new, 5, 3)
-
+         
         self.check_appdata_directory()
 
+
+    def check_yolo_model(self, yolo_path):
+        if hasattr(sys, "_MEIPASS"):
+            return Path(sys._MEIPASS) / yolo_path
+        return Path(__file__).parent / yolo_path
+    
+
     def check_appdata_directory(self):
-        try:
-            if not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis")):
-                text = "Cannot find the app folder at 'Appdata/Local/LoxiAnalysis'.\nClose the application and create the folder with the requested subfolders and files."
-                raise exceptions.AppdataException()
-            elif not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis/Setup")): 
-                text = "Cannot find the setup folder at 'Appdata/Local/LoxiAnalysis/Setup' folder.\nClose the application and create the folder with the requested files."
-                raise exceptions.AppdataException()
-            elif not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis/Setup/yolo.pt")):
-                text = "Cannot find the yolo model at 'Appdata/Local/LoxiAnalysis/Setup/yolo.pt'.\nClose the application and import the model."
-                raise exceptions.AppdataException()
-        except exceptions.AppdataException:
-            self.error_analysis(text)
-            self.browse.setDisabled(True)
-            self.home_button.setDisabled(True)
-            self.start_new.setDisabled(True)
-            self.start_analysis.setDisabled(True)
+        appdata_path = os.path.join(os.getenv('LOCALAPPDATA'), "LoxiAnalysis")
+        runs_path = os.path.join(appdata_path, "Runs")
+        if not os.path.exists(runs_path):
+            if not os.path.exists(appdata_path):
+                os.mkdir(appdata_path)
+            os.mkdir(runs_path)
+        
+        directories = os.listdir(runs_path)
+        nr_of_directories = len(directories)
+        limit_directories = 20
+        if nr_of_directories >= limit_directories:
+            for i in range(nr_of_directories - limit_directories):
+                shutil.rmtree(os.path.join(runs_path, directories[i]))
+
 
     def browse_video(self):
         browse_path, _ = QFileDialog.getOpenFileName(self, "Select File", "", "(*.mp4)")
